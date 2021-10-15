@@ -1,0 +1,48 @@
+version: '3.9'
+services:
+  ambassador_backend:
+    build: .
+    command: [ "air" ]
+    ports:
+      - 8003:8000
+    volumes:
+      - .:/app
+    depends_on:
+      - ambassador_db
+      - redis
+    networks:
+      - ambassador
+      - users
+
+  ambassador_queue:
+    build: .
+    command: "go run src/commands/consumer.go"
+    depends_on:
+      - ambassador_db
+      - ambassador_backend
+    networks:
+      - ambassador
+
+  ambassador_db:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_DATABASE: ambassador
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - .dbdata:/var/lib/mysql
+    networks:
+      - ambassador
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - ambassador
+
+networks:
+  users:
+    external:
+      name: users
+  ambassador:

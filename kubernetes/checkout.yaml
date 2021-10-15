@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: checkout-backend
+  name: checkout-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: checkout-backend
+  template:
+    metadata:
+      labels:
+        io.kompose.service: checkout-backend
+    spec:
+      containers:
+        - args:
+            - go
+            - run
+            - main.go
+          env:
+            - name: BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-secrets
+                  key: BOOTSTRAP_SERVERS
+            - name: CHECKOUT_URL
+              value: http://localhost:5000
+            - name: DB_DATABASE
+              value: checkout
+            - name: DB_HOST
+              value:
+            - name: DB_PASSWORD
+              value: root
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USERNAME
+              value: root
+            - name: KAFKA_TOPIC
+              value: checkout_topic
+            - name: SASL_MECHANISM
+              value: PLAIN
+            - name: SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-secrets
+                  key: SASL_PASSWORD
+            - name: SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-secrets
+                  key: SASL_USERNAME
+            - name: SECURITY_PROTOCOL
+              value: SASL_SSL
+            - name: STRIPE_KEY
+              value:
+            - name: USERS_MS
+              value: http://users-ms:8000
+          image: antoniopapa/checkout:0.0.1
+          name: checkout-backend
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: checkout-queue
+  name: checkout-queue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: checkout-queue
+  template:
+    metadata:
+      labels:
+        io.kompose.service: checkout-queue
+    spec:
+      containers:
+        - args:
+            - go
+            - run
+            - src/commands/consumer.go
+          env:
+            - name: BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-secrets
+                  key: BOOTSTRAP_SERVERS
+            - name: DB_DATABASE
+              value: checkout
+            - name: DB_HOST
+              value:
+            - name: DB_PASSWORD
+              value: root
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USERNAME
+              value: root
+            - name: KAFKA_TOPIC
+              value: checkout_topic
+            - name: SASL_MECHANISM
+              value: PLAIN
+            - name: SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-secrets
+                  key: SASL_PASSWORD
+            - name: SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-secrets
+                  key: SASL_USERNAME
+            - name: SECURITY_PROTOCOL
+              value: SASL_SSL
+            - name: USERS_MS
+              value: http://users-ms:8000
+          image: antoniopapa/checkout:0.0.1
+          name: checkout-queue
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: checkout-backend
+  name: checkout-backend
+spec:
+  ports:
+    - name: "8004"
+      port: 8004
+      targetPort: 8000
+  selector:
+    io.kompose.service: checkout-backend

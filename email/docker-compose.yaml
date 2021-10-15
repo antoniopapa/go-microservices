@@ -1,0 +1,6 @@
+version: '3.9'
+services:
+  email_backend:
+    build: .
+    volumes:
+      - .:/app

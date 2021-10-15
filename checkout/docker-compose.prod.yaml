@@ -1,0 +1,45 @@
+version: '3'
+services:
+  checkout_backend:
+    build:
+      context: .
+      dockerfile: prod.dockerfile
+    image: antoniopapa/checkout:0.0.1
+    command: "go run main.go"
+    ports:
+      - 8004:8000
+    environment:
+      DB_HOST:
+      DB_PORT: 3306
+      DB_DATABASE: checkout
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      BOOTSTRAP_SERVERS:
+      SECURITY_PROTOCOL: SASL_SSL
+      SASL_USERNAME:
+      SASL_PASSWORD:
+      SASL_MECHANISM: PLAIN
+      KAFKA_TOPIC: checkout_topic
+      USERS_MS: http://users-ms:8000
+      STRIPE_KEY:
+      CHECKOUT_URL: http://localhost:5000
+
+  checkout_queue:
+    build:
+      context: .
+      dockerfile: prod.dockerfile
+    image: antoniopapa/checkout:0.0.1
+    command: "go run src/commands/consumer.go"
+    environment:
+      DB_HOST:
+      DB_PORT: 3306
+      DB_DATABASE: checkout
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      BOOTSTRAP_SERVERS:
+      SECURITY_PROTOCOL: SASL_SSL
+      SASL_USERNAME:
+      SASL_PASSWORD:
+      SASL_MECHANISM: PLAIN
+      KAFKA_TOPIC: checkout_topic
+      USERS_MS: http://users-ms:8000
